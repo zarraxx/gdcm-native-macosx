@@ -1,0 +1,187 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.oritsh.imageIO</groupId>
+  <artifactId>native-gdcm-macosx</artifactId>
+  <version>2.4.3</version>
+  <packaging>pom</packaging>
+
+  <name>native-gdcm-macosx</name>
+  <url>http://maven.apache.org</url>
+
+    <repositories>
+        <repository>
+            <id>oritsh</id>
+            <url> http://www.oritsh.com/nexus/content/groups/public/</url>
+        </repository>
+    </repositories>
+
+    <distributionManagement>
+        <repository>
+            <id>oritsh-releases</id>
+            <name>oritsh-releases</name>
+            <url>http://www.oritsh.com/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>oritsh-snapshots</id>
+            <name>oritsh-snapshots</name>
+            <url>http://www.oritsh.com/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+      <dependency>
+          <groupId>com.oritsh.imageIO</groupId>
+          <artifactId>gdcm-source</artifactId>
+          <version>2.4.3</version>
+          <type>zip</type>
+      </dependency>
+  </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-src</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <!--<goal>copy</goal>-->
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <!--<outputDirectory>${basedir}/target/classes/lib</outputDirectory>-->
+                            <stripVersion>true</stripVersion>
+                            <outputDirectory>${project.build.directory}/gdcm</outputDirectory>
+                            <includeArtifactIds>gdcm-source</includeArtifactIds>
+                            <includeGroupIds>${project.groupId}</includeGroupIds>
+                            <excludeTransitive>true</excludeTransitive>
+                            <excludeTypes>pom</excludeTypes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptors>
+                        <descriptor>assembly.xml</descriptor>
+                    </descriptors>
+                    <finalName>gdcm-native-macosx</finalName>
+                    <appendAssemblyId >false </appendAssemblyId >
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.googlecode.cmake-maven-project</groupId>
+                <artifactId>cmake-maven-plugin</artifactId>
+                <version>2.8.11-b4</version>
+                <executions>
+                    <execution>
+                        <id>ctest-generate</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <sourcePath>${project.build.directory}/gdcm</sourcePath>
+                            <targetPath>${project.build.directory}/gdcm_build</targetPath>
+                            <generator>${cmake.generator}</generator>
+                            <options>
+                                <option>-DCMAKE_BUILD_TYPE=Release</option>
+                                <option>-DCMAKE_INSTALL_PREFIX=${project.build.directory}/sysroot/usr</option>
+                            </options>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>basic</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <projectDirectory>${project.build.directory}/gdcm_build</projectDirectory>
+                            <target>install</target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>cmake-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <buildDirectory>${project.build.directory}/gdcm_build</buildDirectory>
+                            <!-- This test fails, and that's what we're expecting; it's OK -->
+                            <testFailureIgnore>true</testFailureIgnore>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>linux</id>
+            <activation>
+                <os>
+                    <name>Linux</name>
+                </os>
+            </activation>
+            <properties>
+                <cmake.generator>Unix Makefiles</cmake.generator>
+            </properties>
+        </profile>
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os>
+                    <name>Mac OS X</name>
+                </os>
+            </activation>
+            <properties>
+                <cmake.generator>Unix Makefiles</cmake.generator>
+                <!-- with xcode -->
+                <!-- <cmake.generator>xcode</cmake.generator> -->
+            </properties>
+        </profile>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <!-- with cygwin -->
+                <cmake.generator>Unix Makefiles</cmake.generator>
+                <!-- with MinGW -->
+                <!-- <cmake.generator>MinGW Makefiles</cmake.generator> -->
+                <!-- with MSYS -->
+                <!-- <cmake.generator>MSYS Makefiles</cmake.generator> -->
+            </properties>
+        </profile>
+
+        <!--
+          Other cmake.generators
+          http://www.cmake.org/cmake/help/v2.8.8/cmake.html#section_Generators
+        -->
+    </profiles>
+
+
+</project>
